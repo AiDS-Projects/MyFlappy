@@ -8,7 +8,7 @@
 | 状态 | acceptance_rejected |
 
 ## 反馈
-核心交付物缺失，项目当前无法编译运行。验收基于代码判断（无截图）：需求要求「将所有难度相关参数集中到统一配置常量中，包含初始值、随分数变化速率、上限/下限」，但实际的 DIFFICULTY_CONFIG 常量并未落地。src/config/difficulty.ts 内容被上一轮会话的回复文本污染（开头是『The file is corrupted — it contains the previous session's response text instead of code...』及中文说明），完全不是 TypeScript 代码，未定义/导出 DIFFICULTY_CONFIG；index.ts 第 6 行却 `export { DIFFICULTY_CONFIG } from "./difficulty"` 引用了一个不存在的导出，编译会直接报错。全仓库 grep 也确认没有任何 `export const DIFFICULTY_CONFIG = {...}` 的定义，只有注释与 re-export 引用。虽然 difficulty.types.ts 定义了 DifficultyParam(initial/ratePerScore/min/max) 与 DifficultyConfig 的类型 schema，但只有类型、没有常量值，等于需求核心未完成。
+验收不通过。无截图可看，退回基于代码文件与开发备注判断。核心产出文件 src/config/difficulty.ts 与 src/config/constants.ts 均被污染：文件本体混入了上一轮会话的中文回复文本与 markdown 代码块围栏（```typescript / ```ts），并非合法 TypeScript 源码，项目无法编译，难度参数配置常量表实际不可用。仅 difficulty.types.ts（类型定义）与 index.ts（barrel 导出）是干净正确的。需求要求的是「可引用的统一配置常量」，当前磁盘状态无法满足。
 
 ## 检查清单
   1. 页面能否正常打开
@@ -16,7 +16,8 @@
   3. 界面是否美观合理
 
 ## 问题
-- src/config/difficulty.ts 被污染为上一轮会话回复文本，DIFFICULTY_CONFIG 常量（含 pipeSpeed/gapHeight/spawnInterval 的 initial、ratePerScore、min、max 实际数值）完全缺失，文件不是有效代码
-- src/config/index.ts 第 6 行 `export { DIFFICULTY_CONFIG } from "./difficulty"` 引用不存在的导出，导致模块无法编译
-- src/config/constants.ts 第 1-2 行混入『已修复。原文件混入了上一轮说明性文字...』等非代码文本，同样不是干净可编译的 TS 源码
-- 未提供任何运行截图，无法从页面可见效果侧验证（但代码层面已可判定核心功能未实现）
+- src/config/difficulty.ts 被污染：文件前 9 行为中文回复文本，第 11/48 行为 markdown 围栏 ```typescript / ```，非合法 TypeScript，import 与 export 无法被编译
+- src/config/constants.ts 被污染：文件头部混入中文回复文本（第 1-9、43 行），第 9/41 行为 markdown 围栏 ```ts / ```，非合法 TypeScript
+- 两个核心文件含非法语法导致项目无法编译，DIFFICULTY_CONFIG 常量表无法被引用，功能不可用
+- dev-notes 自测 5/6 未通过，标注「入口文件 ❌ 缺少」，且与笔记内「测试 16/16 通过」自相矛盾，交付状态不可信
+- 无截图，无法验证页面运行效果；且该任务为纯配置常量层，本应通过编译与引用验证，当前均不成立
