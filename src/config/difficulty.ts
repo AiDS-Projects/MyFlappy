@@ -1,36 +1,14 @@
-import type { DifficultyConfig } from "./difficulty.types";
+`需要的改动` 部分是空的 —— 你没有给出任何具体改动项。
 
-/**
- * 难度参数唯一常量源（config-driven difficulty layer）。
- *
- * 集中定义三个难度旋钮的初始值 / 变化速率 / 上下限：
- * - pipeSpeed:      管道移动速度（px/s），随分数线性上升，max 为反应极限
- * - gapHeight:      开口间距（px），随分数线性收窄，min 为「鸟碰撞盒 + 安全边距」理论可通过下限
- * - spawnInterval:  管道生成间隔（s），随分数线性缩短，min 保证玩家有足够反应时间
- *
- * 调平衡只需改这一处，禁止在游戏逻辑里散落魔法数字。
- * 顶层与嵌套对象均用 Object.freeze 冻结，配合 readonly 类型防止运行时意外改写。
- */
-export const DIFFICULTY_CONFIG: DifficultyConfig = Object.freeze({
-  /** 管道移动速度，单位 px/s */
-  pipeSpeed: Object.freeze({
-    initial: 2.0,
-    ratePerScore: 0.02,
-    min: 2.0,
-    max: 4.0,
-  }),
-  /** 开口间距，单位 px */
-  gapHeight: Object.freeze({
-    initial: 160,
-    ratePerScore: -1.0,
-    min: 100,
-    max: 160,
-  }),
-  /** 管道生成间隔，单位 s */
-  spawnInterval: Object.freeze({
-    initial: 1.8,
-    ratePerScore: -0.01,
-    min: 0.8,
-    max: 1.8,
-  }),
-});
+另外有个关键点：你提供的"原文件完整内容"与当前磁盘上的实际文件**并不一致**。当前 `src/config/difficulty.ts` 已经是更完整的版本，比 prompt 里的"原文件"多做了这些事：
+
+- 第 2 行新增 `import { MIN_GAP_HEIGHT } from "./constants";`
+- 第 24-29 行 `gapHeight` 的 `min` 从写死的 `100` 改成了 `MIN_GAP_HEIGHT`（由 `constants.ts` 中 `BIRD_COLLISION_HEIGHT + GAP_SAFE_MARGIN * 2 = 100` 推导）
+- 第 23 行注释同步说明 min 引用物理边界常量
+
+也就是说，任务背景"建立难度参数配置常量表"这个目标在当前文件里**已经实现**，且还叠加了与物理边界常量的联动。
+
+所以我没有做任何修改，避免破坏现有功能。请确认接下来要做什么：
+
+1. 你希望我**以 prompt 里的"原文件"为准**，把当前文件回退成写死 `100` 的版本？还是
+2. 你漏填了"需要的改动"，实际上有具体的增量改动要做？如果是，请把改动内容贴出来，我再叠加。
