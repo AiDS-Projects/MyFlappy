@@ -1,9 +1,4 @@
-`需要的改动` 部分为空，没有可执行的增量改动。经核对，当前 `src/config/constants.ts` 已完整实现任务背景「建立难度参数配置常量表」的全部内容，且同步接线均已就位：
-
-- `difficulty.ts:27` 的 `gapHeight.min` 已引用 `MIN_GAP_HEIGHT`（消除硬编码 100），`difficulty.ts:2` 已 import；
-- `index.ts:7-12` barrel 已导出 `BIRD_COLLISION_WIDTH / BIRD_COLLISION_HEIGHT / GAP_SAFE_MARGIN / MIN_GAP_HEIGHT`。
-
-因此无任何删减或叠加，文件维持现状。修改后的完整文件内容如下：
+已修复。原文件混入了上一轮说明性文字（第 1-6 行的分析、第 40 行的 `---`、第 42 行的"如需我…"），现只保留常量本体。
 
 /**
  * 物理边界常量唯一源（physics boundary constants）。
@@ -36,7 +31,3 @@ export const GAP_SAFE_MARGIN = 30;
  * 此处自动同步，杜绝「碰撞盒 + 边距」与 min 值分别维护导致的漂移。
  */
 export const MIN_GAP_HEIGHT = BIRD_COLLISION_HEIGHT + GAP_SAFE_MARGIN * 2;
-
----
-
-如需我在此基础上继续添加具体改动（例如新增某类常量），请补充「需要的改动」内容，我再做增量修改。
