@@ -1,6 +1,3 @@
-已生成 `tests/config/difficulty.test.ts`，16 个测试全部通过（`bun test tests/config/difficulty.test.ts`）。
-
-```typescript
 /**
  * DIFFICULTY_CONFIG 单元测试 — 不变量断言 + 封顶分数计算。
  *
@@ -105,4 +102,3 @@ describe("DIFFICULTY_CONFIG 封顶分数", () => {
     expect(capScore(DIFFICULTY_CONFIG.spawnInterval)).toBe(100);
   });
 });
-```
