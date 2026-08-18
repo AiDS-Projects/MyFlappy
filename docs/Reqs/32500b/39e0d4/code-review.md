@@ -1,22 +1,21 @@
 # 代码审查 — 建立难度参数配置常量表
 
-## 评分: 4/10 🚫 需修复
+## 评分: 2/10 🚫 需修复
 
 ## 🔴 严重问题（必须修复）
-- src/config/difficulty.ts 文件内容仍以非代码叙述文本开头（"All three files in this deliverable are corrupted by the same bug: ... Let me restore them.问题已定位并修复。... 修改后的 `src/config/difficulty.ts` 完整内容如下："），这些英文/中文叙述位于 import 语句之前，属于非法 TypeScript 语法，文件无法通过编译。声称的"已恢复"并未真正落实到文件——上一轮的'回复文本误写入文件'问题仍然存在。
-- src/config/constants.ts 同样在代码之前混入大段中文叙述文本（"`需要的改动` 部分为空，没有可执行的增量改动。经核对..."），属于非法 TypeScript，文件无法编译。交付物仍处于损坏状态。
+- {'file': 'src/config/difficulty.ts', 'line': 1, 'title': '文件内容损坏，DIFFICULTY_CONFIG 常量定义完全缺失', 'detail': '该文件当前内容是上一轮会话的回复文本（\'The file is corrupted — it contains the previous session\'s response text...\' 及后续中文说明），而非 TypeScript 代码。它未定义也未导出 DIFFICULTY_CONFIG，而 config/index.ts 的 `export { DIFFICULTY_CONFIG } from "./difficulty"` 和 src/index.ts 的 `export { DIFFICULTY_CONFIG } from "./config"` 都依赖此导出。结果：模块解析失败，整个项目无法编译，难度参数配置常量表这一核心交付物实际上并不存在。必须恢复真实的 DIFFICULTY_CONFIG 定义（含 pipeSpeed / gapHeight / spawnInterval 三旋钮的 {initial, ratePerScore, min, max} 取值）。', 'level': 'critical'}
+- {'file': 'src/config/constants.ts', 'line': 1, 'title': '文件头部混入非注释的说明文字，导致语法错误', 'detail': '文件第 1 行起是 \'已修复。原文件混入了上一轮说明性文字（第 1-6 行的分析、第 40 行的 ---、第 42 行的"如需我…"），现只保留常量本体。\' 这段裸文本，其后才接 `/** 物理边界常量唯一源... */` 注释块。裸文本不是合法 TypeScript 语法，解析器会在文件顶部直接报错。该文件即使依赖关系正确也无法被 import。需删除第 1 段会话性文字，仅保留注释与常量本体。', 'level': 'critical'}
 
 ## 🟡 警告（建议修复）
-- 根入口 src/index.ts 未 re-export 物理边界常量（BIRD_COLLISION_WIDTH / BIRD_COLLISION_HEIGHT / GAP_SAFE_MARGIN / MIN_GAP_HEIGHT），仅导出了 DIFFICULTY_CONFIG 与两个类型；而 config/index.ts 已导出这些常量。文档声称提供'统一引用入口'，但从项目根 `import { MIN_GAP_HEIGHT } from "src/index"` 会失败，与模块意图不一致。
-- 难度曲线参数均为无来源的魔法数字（2.0 / 4.0 / 0.02 / 160 / -1.0 / 1.8 / 0.8 / -0.01）。文档注释声称 max 对应'反应极限'、min 保证'足够反应时间'，但没有任何推导、测量或引用支撑这些具体取值，后续调平衡无法判断其合理性。
-- 三个旋钮到达上/下限所需的分数不一致：gapHeight 每分收窄 1.0px，从 160 到 100 仅需约 60 分即触底；pipeSpeed 与 spawnInterval 则需约 100 分才到极值。难度曲线各维度封顶时间点不统一，且 gapHeight.ratePerScore=-1.0（整数）与其他旋钮小数步进（0.02/-0.01）精度风格不一致。
-- Object.freeze 是浅冻结，当前靠手动逐个冻结嵌套对象来补偿，新增旋钮时极易遗漏嵌套 freeze 导致运行时被改写；readonly 类型仅在编译期生效，遇到 any 断言即可绕过。readonly + 双层 freeze 的防护存在维护隐患且语义重复。
+- {'file': 'src/config/difficulty.types.ts', 'line': 1, 'title': 'DifficultyParam 类型契约缺少取值合法性约束', 'detail': '类型仅声明了 initial/ratePerScore/min/max 四个 readonly number，但没有约束 initial 必须落在 [min, max] 区间内、min < max、以及 ratePerScore 符号与方向一致（如 gapHeight 为负步进）。纯类型声明无法防止后续调平衡时写入非法配置（例如 min=120 而 initial=100，或 min > max）。建议在 DIFFICULTY_CONFIG 定义处增加编译期断言（如 satisfies 辅助类型）或运行时校验，确保每个旋钮 min <= initial <= max。', 'level': 'warning'}
+- {'file': 'src/config/constants.ts', 'line': 20, 'title': 'MIN_GAP_HEIGHT 硬编码 `GAP_SAFE_MARGIN * 2`，隐含对称边距假设', 'detail': 'MIN_GAP_HEIGHT = BIRD_COLLISION_HEIGHT + GAP_SAFE_MARGIN * 2 中的 `* 2` 假定上下边距相等且对称。若未来因小鸟姿态（俯冲/上升时上下所需安全空间不同）需不对称边距，则需改动该公式本身而非仅改常量值，属于隐式耦合。建议显式拆分 GAP_SAFE_MARGIN_TOP / GAP_SAFE_MARGIN_BOTTOM，或在注释中明确说明对称性假设不可破坏。', 'level': 'warning'}
+- {'file': 'src/config/constants.ts', 'line': 8, 'title': 'BIRD_COLLISION_WIDTH 已导出但未参与任何常量推导', 'detail': "当前常量推导链仅 BIRD_COLLISION_HEIGHT 参与 MIN_GAP_HEIGHT 计算，BIRD_COLLISION_WIDTH 虽被导出但在此文件中无下游引用。若游戏碰撞检测代码尚未切换到该导出，宽高仍可能散落在别处以各自数值维护，违背 docstring 中'宽高收敛到唯一来源'的目标。需确认游戏逻辑已改为引用该常量，否则宽度仍存在漂移风险。", 'level': 'warning'}
 
 ## 🟢 建议（可选优化）
-- 交付物未包含任何针对配置本身的单元测试（叙述声称 'bun test 16/16 通过' 但无测试文件随附）。建议补充验证不变量（min ≤ initial ≤ max、MIN_GAP_HEIGHT = BIRD_COLLISION_HEIGHT + GAP_SAFE_MARGIN * 2）的测试，防止配置写反或推导断裂。
-- 缺少类型级或运行时校验保证 min ≤ initial ≤ max 的约束成立，一旦某个旋钮的 initial 写超出 [min, max] 范围不会产生任何编译或运行时报错。建议用 `satisfies` 加断言或在模块加载时做一次不变式校验。
-- constants.ts 与 difficulty.ts 顶部注释过于冗长，读起来像 PR 描述/changelog 而非代码文档（constants.ts 大段说明'消除两类魔法数字漂移'的背景）。建议精简，只保留'为什么这么做'的 why 级注释。
-- BIRD_COLLISION_WIDTH 在配置层并未被使用（仅 BIRD_COLLISION_HEIGHT 参与 MIN_GAP_HEIGHT 推导），若当前暂无消费方，建议暂缓导出或注明用途，避免把未用常量误暴露为公共 API。
+- {'file': 'src/config/constants.ts', 'line': 1, 'title': 'docstring 混入会话性叙述，应精简为纯技术说明', 'detail': "docstring 中'消除两类魔法数字漂移'的说明本身很好，但'已修复/原文件混入上一轮说明性文字'等属于会话过程记录，不应进入源码注释。恢复时应只保留技术性 why 注释，会话信息可放入 commit message 或 PR 描述。", 'level': 'suggestion'}
+- {'file': 'src/config/constants.ts', 'line': 17, 'title': 'GAP_SAFE_MARGIN 注释可更明确对称性假设', 'detail': "'上下两侧各需保留的最小安全边距' 未明确说明上下边距取同一值这一假设。建议改为 GAP_SAFE_MARGIN_TOP / GAP_SAFE_MARGIN_BOTTOM 两个常量，或在此注释中显式写明'上下对称，同一值'，避免后续维护者误认为可分别调整。", 'level': 'suggestion'}
+- {'file': 'src/config/difficulty.ts', 'line': 1, 'title': '恢复 DIFFICULTY_CONFIG 时需补充各旋钮取值的推导依据', 'detail': "因文件损坏无法审查各 {initial, ratePerScore, min, max} 的实际取值。恢复时应为每个旋钮补充 why 级别注释（例如 pipeSpeed 上限如何对应'反应极限'、gapHeight 下限如何对应 MIN_GAP_HEIGHT），否则仅有一组裸数值难以维护和调平衡。", 'level': 'suggestion'}
+- {'file': 'src/config/constants.ts', 'line': 20, 'title': 'MIN_GAP_HEIGHT 计算结果建议显式注释', 'detail': "MIN_GAP_HEIGHT = 40 + 30*2 = 100。原注释提到'此前 gapHeight.min 直接写死为 100'，说明历史值恰好等于新推导值。建议在注释中明确'当前推导结果为 100'，便于读者快速核对迁移前后数值一致性，避免误以为发生了行为变更。", 'level': 'suggestion'}
 
 ## 审查的代码
 - src/config/difficulty.ts
