@@ -8,7 +8,7 @@
 | 状态 | acceptance_rejected |
 
 ## 反馈
-无截图可验收，按验收标准退回基于代码文件与开发备注判断。需求「将难度参数集中到统一配置常量（含初始值、随分数变化速率、上限/下限）」的核心内容确实存在于文件中：DIFFICULTY_CONFIG 已包含 pipeSpeed/gapHeight/spawnInterval 三个旋钮，且各自具备 initial/ratePerScore/min/max 四元组，gapHeight.min 也正确引用 constants.ts 的 MIN_GAP_HEIGHT 推导，difficulty.types.ts 与 index.ts 内容干净完整。但交付物存在致命缺陷：src/config/difficulty.ts 第 1-3 行、src/config/constants.ts 第 1-6 行混入了上一轮会话的回复文本（英文+中文说明段落），这些是非法的 TypeScript 语法，导致两个核心文件无法编译、DIFFICULTY_CONFIG 与 MIN_GAP_HEIGHT 无法被 import/使用。文件损坏意味着配置常量表虽『内容齐备』却『不可运行』，功能未真正落地，判定不通过。
+核心交付物缺失，项目当前无法编译运行。验收基于代码判断（无截图）：需求要求「将所有难度相关参数集中到统一配置常量中，包含初始值、随分数变化速率、上限/下限」，但实际的 DIFFICULTY_CONFIG 常量并未落地。src/config/difficulty.ts 内容被上一轮会话的回复文本污染（开头是『The file is corrupted — it contains the previous session's response text instead of code...』及中文说明），完全不是 TypeScript 代码，未定义/导出 DIFFICULTY_CONFIG；index.ts 第 6 行却 `export { DIFFICULTY_CONFIG } from "./difficulty"` 引用了一个不存在的导出，编译会直接报错。全仓库 grep 也确认没有任何 `export const DIFFICULTY_CONFIG = {...}` 的定义，只有注释与 re-export 引用。虽然 difficulty.types.ts 定义了 DifficultyParam(initial/ratePerScore/min/max) 与 DifficultyConfig 的类型 schema，但只有类型、没有常量值，等于需求核心未完成。
 
 ## 检查清单
   1. 页面能否正常打开
@@ -16,7 +16,7 @@
   3. 界面是否美观合理
 
 ## 问题
-- src/config/difficulty.ts 文件开头第 1-3 行为上一轮会话的回复文本（'All three files in this deliverable are corrupted...' 及中文说明），非合法 TypeScript 语法，文件无法编译，export const DIFFICULTY_CONFIG 无法被正常导出引用
-- src/config/constants.ts 文件开头第 1-6 行为中文说明段落（'需要的改动 部分为空...'），混入非代码文本，MIN_GAP_HEIGHT 等常量无法作为合法 TS 模块编译
-- 开发备注自测表显示「入口文件 ❌ 缺少」，且此前 acceptance-review.md 已记录同样问题（afa09e1 提交写坏文件），问题至今未修复
-- 无截图产出，且该纯配置模块本身无页面可验证，退回代码层面判断，文件损坏即功能不可用
+- src/config/difficulty.ts 被污染为上一轮会话回复文本，DIFFICULTY_CONFIG 常量（含 pipeSpeed/gapHeight/spawnInterval 的 initial、ratePerScore、min、max 实际数值）完全缺失，文件不是有效代码
+- src/config/index.ts 第 6 行 `export { DIFFICULTY_CONFIG } from "./difficulty"` 引用不存在的导出，导致模块无法编译
+- src/config/constants.ts 第 1-2 行混入『已修复。原文件混入了上一轮说明性文字...』等非代码文本，同样不是干净可编译的 TS 源码
+- 未提供任何运行截图，无法从页面可见效果侧验证（但代码层面已可判定核心功能未实现）
