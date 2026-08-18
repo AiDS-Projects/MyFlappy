@@ -1,28 +1,24 @@
 # 代码审查 — 建立难度参数配置常量表
 
-## 评分: 5/10 🚫 需修复
+## 评分: 4/10 🚫 需修复
 
 ## 🔴 严重问题（必须修复）
-- src/config/difficulty.ts 核心交付文件内容缺失：diff 部分为 agent 拒绝响应文本而非实际代码（「需要的改动」为空），导致无法验证 Object.freeze 是否真正调用、gapHeight.min 是否实际引用 MIN_GAP_HEIGHT、封顶分数 100/60/100 是否与 {initial, ratePerScore, min, max} 一致。「16 个测试全部通过」无法被审查确认；若实现落地为 as const/readonly 而非 Object.freeze，冻结测试必然失败。变更完整性不满足可审查要求，属于交付级严重问题。
-- tests/config/difficulty.test.ts 冻结断言与类型设计存在逻辑冲突：difficulty.types.ts 全字段声明为 readonly（编译期约束），而测试用 Object.isFrozen 做运行时断言。TS 惯用的 as const + satisfies DifficultyConfig 不会冻结运行时对象，等价行为会被测试误判为失败。测试过度绑定具体实现技术（Object.freeze）而非行为契约（不可变），属于测试正确性问题。
+- src/config/difficulty.ts 文件内容仍以非代码叙述文本开头（"All three files in this deliverable are corrupted by the same bug: ... Let me restore them.问题已定位并修复。... 修改后的 `src/config/difficulty.ts` 完整内容如下："），这些英文/中文叙述位于 import 语句之前，属于非法 TypeScript 语法，文件无法通过编译。声称的"已恢复"并未真正落实到文件——上一轮的'回复文本误写入文件'问题仍然存在。
+- src/config/constants.ts 同样在代码之前混入大段中文叙述文本（"`需要的改动` 部分为空，没有可执行的增量改动。经核对..."），属于非法 TypeScript，文件无法编译。交付物仍处于损坏状态。
 
 ## 🟡 警告（建议修复）
-- tsconfig.json include 仅含 src，tests/ 被排除在 tsc --noEmit 之外；bun test 只转译不检查类型，导致测试代码完全脱离 strict 与「禁止 any」类型约束，测试中的类型错误不会被 CI 捕获。
-- tests/config/difficulty.test.ts capScore 使用浮点除法后用 toBe(100) 精确相等断言：对非整除步长（如 ratePerScore=0.3）会产生浮点误差导致脆弱失败；且 ratePerScore===0 时除零产生 Infinity/NaN，虽另有非零断言但函数自身缺乏防御。
-- src/config/constants.ts 中 GAP_SAFE_MARGIN = 30 本身是未文档化的魔法数字：全文件目标是「消除魔法数字漂移」，但 30 无任何推导来源（无重力/拍打冲量/手感测试依据），与文件宣称的目标自相矛盾。
-- MIN_GAP_HEIGHT = 40 + 30*2 = 100 与旧硬编码 100 数值完全一致，属同义改写：重构只换了表达式未改值。若游戏逻辑仍各自硬编码碰撞盒尺寸，则「唯一来源」声明不成立，漂移风险依旧存在，需确认下游已接入这些常量。
+- 根入口 src/index.ts 未 re-export 物理边界常量（BIRD_COLLISION_WIDTH / BIRD_COLLISION_HEIGHT / GAP_SAFE_MARGIN / MIN_GAP_HEIGHT），仅导出了 DIFFICULTY_CONFIG 与两个类型；而 config/index.ts 已导出这些常量。文档声称提供'统一引用入口'，但从项目根 `import { MIN_GAP_HEIGHT } from "src/index"` 会失败，与模块意图不一致。
+- 难度曲线参数均为无来源的魔法数字（2.0 / 4.0 / 0.02 / 160 / -1.0 / 1.8 / 0.8 / -0.01）。文档注释声称 max 对应'反应极限'、min 保证'足够反应时间'，但没有任何推导、测量或引用支撑这些具体取值，后续调平衡无法判断其合理性。
+- 三个旋钮到达上/下限所需的分数不一致：gapHeight 每分收窄 1.0px，从 160 到 100 仅需约 60 分即触底；pipeSpeed 与 spawnInterval 则需约 100 分才到极值。难度曲线各维度封顶时间点不统一，且 gapHeight.ratePerScore=-1.0（整数）与其他旋钮小数步进（0.02/-0.01）精度风格不一致。
+- Object.freeze 是浅冻结，当前靠手动逐个冻结嵌套对象来补偿，新增旋钮时极易遗漏嵌套 freeze 导致运行时被改写；readonly 类型仅在编译期生效，遇到 any 断言即可绕过。readonly + 双层 freeze 的防护存在维护隐患且语义重复。
 
 ## 🟢 建议（可选优化）
-- src/config/constants.ts 导出的 BIRD_COLLISION_WIDTH 全项目无引用（difficulty.ts 仅使用 MIN_GAP_HEIGHT），疑似死导出；建议接入游戏碰撞逻辑或移除。
-- src/index.ts 经 ./config barrel 二次转发 DIFFICULTY_CONFIG 与类型，多一层间接；建议直接 from ./config/difficulty 与 ./config/difficulty.types 减少跳转层级。
-- tsconfig.json paths 的 @/* 别名仅配置 TS 解析，运行期需 bundler（Vite/Webpack）同步配置 alias，否则 @/config 运行时解析失败；建议补充说明或统一改用相对路径。
-- difficulty.types.ts 中 min 注释写「gapHeight / spawnInterval 必须设为『理论可通过』的最小值」，但 spawnInterval（生成间隔）与「可通过」物理无关，注释语义不准确，应拆分说明。
-- capScore 函数未对 ratePerScore === 0 显式守卫（仅靠外部测试断言）；建议函数内对零速率抛出明确错误或返回语义化结果，避免调用方误用产生 Infinity/NaN。
+- 交付物未包含任何针对配置本身的单元测试（叙述声称 'bun test 16/16 通过' 但无测试文件随附）。建议补充验证不变量（min ≤ initial ≤ max、MIN_GAP_HEIGHT = BIRD_COLLISION_HEIGHT + GAP_SAFE_MARGIN * 2）的测试，防止配置写反或推导断裂。
+- 缺少类型级或运行时校验保证 min ≤ initial ≤ max 的约束成立，一旦某个旋钮的 initial 写超出 [min, max] 范围不会产生任何编译或运行时报错。建议用 `satisfies` 加断言或在模块加载时做一次不变式校验。
+- constants.ts 与 difficulty.ts 顶部注释过于冗长，读起来像 PR 描述/changelog 而非代码文档（constants.ts 大段说明'消除两类魔法数字漂移'的背景）。建议精简，只保留'为什么这么做'的 why 级注释。
+- BIRD_COLLISION_WIDTH 在配置层并未被使用（仅 BIRD_COLLISION_HEIGHT 参与 MIN_GAP_HEIGHT 推导），若当前暂无消费方，建议暂缓导出或注明用途，避免把未用常量误暴露为公共 API。
 
 ## 审查的代码
-- src/index.ts
-- tsconfig.json
-- src/config/constants.ts
-- tests/config/difficulty.test.ts
 - src/config/difficulty.ts
+- src/config/constants.ts
 - docs/Reqs/32500b/39e0d4/dev-notes.md
