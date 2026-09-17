@@ -1,4 +1,4 @@
-已恢复 `src/config/difficulty.ts` 为正确的 TypeScript 常量表代码。完整文件内容如下：
+文件当前状态已与「原文件完整内容」一致，且 `constants.ts` 实际并未被污染（`MIN_GAP_HEIGHT` 已正常导出）。由于「需要的改动」为空，没有增量改动需要叠加，文件内容保持如下：
 
 import type { DifficultyConfig } from "./difficulty.types";
 import { MIN_GAP_HEIGHT } from "./constants";
@@ -37,7 +37,3 @@ export const DIFFICULTY_CONFIG: DifficultyConfig = Object.freeze({
     max: 1.8,
   }),
 });
-
----
-
-⚠️ 提醒：`src/config/constants.ts` 实际仍被上一轮回复文本污染（第 1–5 行、第 39–41 行的 `---` 与说明文字，非合法 TypeScript）。`difficulty.ts` 依赖它导出的 `MIN_GAP_HEIGHT`，因此 `bun test` 目前仍会报错。按你的范围我只处理了 `difficulty.ts`；如需一并清理 `constants.ts`，告诉我即可。
