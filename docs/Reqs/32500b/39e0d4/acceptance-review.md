@@ -4,11 +4,11 @@
 
 | 项目 | 值 |
 |------|------|
-| 评分 | 3/10 (通过线: 6) |
+| 评分 | 4/10 (通过线: 6) |
 | 状态 | acceptance_rejected |
 
 ## 反馈
-验收不通过。无运行截图，退回基于代码文件判断。核心交付物「难度参数配置常量表」的内容（DIFFICULTY_CONFIG 含 pipeSpeed/gapHeight/spawnInterval 三个旋钮，各自含 initial/ratePerScore/min/max）在 src/config/difficulty.ts 中已具备，但两个核心产出文件仍处于损坏状态：src/config/constants.ts 第 1-5 行为残留 AI 回复文本（英文/中文句子，非合法 TypeScript），src/config/difficulty.ts 第 1 行为残留中文回复文本。实测 bun test 报语法错误（0 pass / 1 fail / 1 error），与 dev-notes 中「16 pass / 0 fail」的自测结论不符。文件无法编译加载，功能不可用，判定不通过。
+无截图可验收（本需求为纯配置/常量层，不涉及 UI 运行效果），按验收标准退回基于代码与开发备注判断。核心交付物 src/config/difficulty.ts 已正确实现：DIFFICULTY_CONFIG 集中定义 pipeSpeed/gapHeight/spawnInterval 三个难度旋钮，每个均含 initial、ratePerScore、min、max，且对象已冻结、类型已用 readonly 约束，符合需求描述。但关键缺陷：src/config/constants.ts 当前磁盘内容为中文说明文本而非 TypeScript 代码（全文 5 行，无任何 export 语句，未导出 BIRD_COLLISION_WIDTH/BIRD_COLLISION_HEIGHT/GAP_SAFE_MARGIN/MIN_GAP_HEIGHT）。该文件是需求产出文件之一，且 difficulty.ts 通过 `import { MIN_GAP_HEIGHT } from "./constants"` 依赖它，config/index.ts 也 re-export 这些常量——依赖链已断裂，模块无法编译，测试（tests/config/difficulty.test.ts 引用了这些导出）也无法通过。开发备注中声称已清除污染且测试 16 通过，与实际磁盘状态不符（修复未真正落地）。
 
 ## 检查清单
   1. 页面能否正常打开
@@ -16,7 +16,8 @@
   3. 界面是否美观合理
 
 ## 问题
-- src/config/constants.ts 第 1-5 行混入残留 AI 对话文本（'I have the full picture...'、'Let me write the correct file...'、'修改后的完整内容：'），非合法 TypeScript，编译必失败
-- src/config/difficulty.ts 第 1 行混入残留中文回复文本，bun test 实测报 'Expected ; but found' 解析错误
-- bun test tests/config/difficulty.test.ts 实测 0 pass / 1 fail / 1 error，与 dev-notes 自测结论（16 pass / 0 fail）矛盾，交付物无法通过测试
-- 无任何运行截图，且代码处于损坏状态，无法验收页面/功能运行效果
+- src/config/constants.ts 被中文说明文本污染，非有效 TypeScript，无任何 export 语句
+- difficulty.ts 的 `import { MIN_GAP_HEIGHT } from './constants'` 依赖断裂，模块无法编译
+- config/index.ts re-export 的 BIRD_COLLISION_WIDTH/BIRD_COLLISION_HEIGHT/GAP_SAFE_MARGIN/MIN_GAP_HEIGHT 实际不存在
+- tests/config/difficulty.test.ts 引用了 constants.ts 不存在的导出，测试无法运行
+- 开发备注声称测试 16 通过与实际文件状态不符，修复未落地
