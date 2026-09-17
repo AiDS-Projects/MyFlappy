@@ -1,5 +1,3 @@
-文件当前状态已与「原文件完整内容」一致，且 `constants.ts` 实际并未被污染（`MIN_GAP_HEIGHT` 已正常导出）。由于「需要的改动」为空，没有增量改动需要叠加，文件内容保持如下：
-
 import type { DifficultyConfig } from "./difficulty.types";
 import { MIN_GAP_HEIGHT } from "./constants";
 
