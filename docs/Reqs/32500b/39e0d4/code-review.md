@@ -3,22 +3,20 @@
 ## 评分: 4/10 🚫 需修复
 
 ## 🔴 严重问题（必须修复）
-- src/config/constants.ts 交付内容自相矛盾且非合法代码：difficulty.ts 的提示称 constants.ts「仍被上一轮回复文本污染（第 1–5、39–41 行为 --- 与说明文字）」，而 constants.ts 部分又称「已修复」，且本次交付未给出 constants.ts 的实际代码正文。difficulty.ts 第 2 行 `import { MIN_GAP_HEIGHT } from "./constants"` 依赖该模块，导致 gapHeight.min 实际值未知，模块无法编译，bun test 必然失败。
-- min/max 边界没有任何消费逻辑（无 clamp/计算函数，仅存数据）。ratePerScore 为线性且无约束：gapHeight 在 score 超过 (160 - MIN_GAP_HEIGHT) 后变为负数（负开口间距），spawnInterval 在 score 超过 100 后跌破 0.8 并最终转负（负生成间隔），pipeSpeed 在 score 超过 100 后突破 max 4.0。作为宣称的「唯一常量源」，边界未被执行，存在逻辑错误与负值/崩溃风险。
+- {'severity': 'critical', 'file': 'src/config/constants.ts', 'line': 1, 'title': '文件头部混入残留对话文本，非合法 TypeScript，编译必失败', 'detail': '`constants.ts` 的开头包含「I have the full picture...」「Let me write the correct file.`difficulty.ts` is also polluted...」「Both files were actually polluted...」等一整段 AI 对话残留文本，再之后才出现 `/** 物理边界常量唯一源 */`。这些英文/中文句子不是合法 TS 语句，任何 `tsc` / 打包工具在解析该文件时都会直接报语法错误，交付物不可编译。', 'fix': '删除 `export const BIRD_COLLISION_WIDTH` 之前的所有残留文本，仅保留从 JSDoc 注释开始的合法 TS 内容。'}
+- {'severity': 'critical', 'file': 'src/config/difficulty.ts', 'line': 1, 'title': '文件头部混入残留对话文本，非合法 TypeScript，编译必失败', 'detail': '`difficulty.ts` 的第 1 行开始是「文件当前状态已与「原文件完整内容」一致...由于「需要的改动」为空...文件内容保持如下：」这段对话残留文本，之后才是 `import type { DifficultyConfig }`。同样不是合法 TS，会导致 `import { MIN_GAP_HEIGHT } from "./constants"` 与整体模块加载失败。', 'fix': '删除 `import type { DifficultyConfig } from "./difficulty.types";` 之前的所有残留文本，仅保留 import 与常量定义。'}
 
 ## 🟡 警告（建议修复）
-- initial 与一侧边界值重复（pipeSpeed.min==initial==2.0、gapHeight.max==initial==160、spawnInterval.max==initial==1.8），是隐式魔数，调整 initial 时极易忘记同步对应边界，存在漂移风险。
-- 三个旋钮达到极限所需分数不一致：pipeSpeed 与 spawnInterval 均为 100 分触顶，gapHeight 触底需 (160 - MIN_GAP_HEIGHT) 分，若 MIN_GAP_HEIGHT ≠ 60 则三旋钮不同步，难度曲线会出现突变点。
-- spawnInterval.min=0.8s 可能低于人类反应时间（通常约 1s），pipeSpeed.max=4.0 的「反应极限」亦无数据依据，调参缺乏可追溯性。
-- 缺少运行时校验 min <= initial <= max 且 min < max，错误配置会在运行时静默失败而非启动即报错。
+- {'severity': 'warning', 'file': 'src/config/difficulty.ts', 'title': '三个难度旋钮封顶节奏不一致，gapHeight 提前触底', 'detail': 'gapHeight: initial=160, ratePerScore=-1.0, min=100 → 在 score=60 即触底；而 pipeSpeed(initial 2.0, rate 0.02, max 4.0) 与 spawnInterval(initial 1.8, rate -0.01, min 0.8) 都要到 score=100 才封顶。这意味着 score 60 之后 gapHeight 已被锁死在最小值，中后期难度只剩「速度/生成间隔」两个旋钮在变化，难度曲线提前失活、玩法趋于单调。', 'fix': '统一三个旋钮的封顶 score（如都设为 100），或将 gapHeight 的 ratePerScore 调整为 -0.6 使其与其余旋钮同步触底；若提前封顶是有意设计，请在注释中说明理由。'}
+- {'severity': 'warning', 'file': 'src/config/difficulty.types.ts', 'title': 'ratePerScore 符号约定仅靠注释，无类型/运行时约束', 'detail': 'pipeSpeed 为正步进、gapHeight 与 spawnInterval 为负步进这一关键语义只写在 JSDoc 注释里，`DifficultyParam` 类型本身无法区分「增参」与「减参」。一旦某处写反符号（例如把 gapHeight.ratePerScore 写成 +1.0），类型系统不会报警，最终表现为开口越打越开这种隐蔽逻辑错误。', 'fix': "可将 DifficultyParam 拆分为带方向语义的字段（如 `direction: 'increase' | 'decrease'`），或在难度曲线计算模块中增加符号校验断言。"}
+- {'severity': 'warning', 'file': 'src/config/difficulty.ts', 'title': '浮点 ratePerScore 在长局中易累积误差', 'detail': 'ratePerScore 使用浮点（0.02 / -1.0 / -0.01），若难度曲线计算模块用 `initial + rate * score` 逐帧递推，浮点无法精确表示 0.01/0.02，长局（数千分）下会产生累积漂移。当前虽只是常量表，但作为后续计算模块的唯一数据源，需要提前声明计算方式。', 'fix': '建议在文档中明确「按 score 一次性公式计算（initial + rate*score）后再 clamp」而非逐帧递推，避免误差累积。'}
 
 ## 🟢 建议（可选优化）
-- 改用 `as const satisfies DifficultyConfig`（可叠加 Object.freeze），获得字面量类型的编译期校验，防止字段值/类型漂移。
-- 新增 resolveDifficulty(score) 或 clamp 工具函数并在本模块就近导出，让 min/max 真正被消费，消除「死数据」状态。
-- 显式编码变化方向（如 direction: 1 | -1 字段）替代依赖注释的符号约定，降低调用方误用风险。
-- difficulty.ts 与 difficulty.types.ts 重复了单位与含义注释，建议统一收敛到类型定义一处。
+- {'severity': 'suggestion', 'file': 'src/config/constants.ts', 'title': '文件名 constants.ts 过于宽泛，语义不清', 'detail': '该文件只承载「小鸟碰撞盒 + 管道开口安全边距」这类物理边界常量，命名为通用的 `constants.ts` 会让后续维护者把各类无关常量（如 UI 尺寸、音频配置）也塞进来，破坏「唯一源」边界。', 'fix': '建议改名为 `physics.ts` 或 `collision.ts`，并在 index.ts 同步调整导出。'}
+- {'severity': 'suggestion', 'file': 'src/config/constants.ts', 'title': '底层常量 docstring 反向引用上层 DIFFICULTY_CONFIG，形成概念耦合', 'detail': 'constants.ts 的 docstring 中写「任何依赖物理边界的配置（如 DIFFICULTY_CONFIG.gapHeight.min）」，让底层 constants 模块「知晓」了上层 difficulty 模块的存在，形成反向依赖的心智模型。正确方向应是 difficulty.ts 单向引用 constants.ts。', 'fix': '将 docstring 改为中立表述（如「供各难度配置的 gapHeight.min 引用」），把依赖关系描述放到 difficulty.ts 一侧。'}
+- {'severity': 'suggestion', 'file': 'src/config/constants.ts', 'title': 'GAP_SAFE_MARGIN 未区分上/下边距，扩展性受限', 'detail': 'MIN_GAP_HEIGHT = BIRD_COLLISION_HEIGHT + GAP_SAFE_MARGIN * 2 隐含上下边距对称。若未来小鸟向上与向下的碰撞风险不对称（例如重力导致下落更快），需要非对称边距时，该公式和命名都要改。', 'fix': '可考虑拆为 `GAP_SAFE_MARGIN_TOP` / `GAP_SAFE_MARGIN_BOTTOM`，或至少在当前注释中说明「当前假设上下对称」。'}
 
 ## 审查的代码
-- src/config/difficulty.ts
 - src/config/constants.ts
+- src/config/difficulty.ts
 - docs/Reqs/32500b/39e0d4/dev-notes.md
