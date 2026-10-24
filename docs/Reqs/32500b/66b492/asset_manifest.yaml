@@ -1,59 +1,51 @@
 # asset_manifest.yaml — 集成难度曲线到游戏循环并实现重开重置
-# 由美术 Agent 完整生成，覆盖 UX Agent 的初稿
-# status: pending=待生产 / sourced=已从资产库获取 / generated=已AI生成
+# 由 ArtistAgent 落地更新
+# status: sourced=命中资产库 / placeholder=占位图待替换 / manual_required=需人工提供 / not_found=未命中
 assets:
-  - id: bird_idle
-    type: sprite
-    description: 小鸟飞行精灵 3 帧循环（翅膀上/中/下） 34x24px
-    source_hint: existing
-    status: pending
   - id: pipe_up
     type: sprite
     description: 上管道精灵 52x320px 含高光/暗部
-    source_hint: existing
-    status: pending
-  - id: pipe_down
-    type: sprite
-    description: 下管道精灵 52x320px 含高光/暗部
-    source_hint: existing
-    status: pending
-  - id: ground_strip
-    type: sprite
-    description: 地面滚动条 336x112px 可无缝平铺
-    source_hint: existing
-    status: pending
-  - id: sky_bg
-    type: sprite
-    description: 远景天空/城市背景 288x512px 可平铺
-    source_hint: existing
-    status: pending
+    status: sourced
+    path: game/sprites/kenney-game-icons/PNG/Black/1x/up.png
+    matched_name: up
+    asset_db_id: AST-032685
+    match_score: 0.85
   - id: btn_pause
     type: icon
     description: 暂停图标 24px outline（两条竖线）
-    source_hint: iconify
-    status: pending
-  - id: panel_base
-    type: ui
-    description: 通用弹窗面板背景 320x180 九宫格可拉伸
-    source_hint: existing
-    status: pending
-  - id: btn_primary
-    type: ui
-    description: 主操作按钮九宫格背景（再来一局/开始/继续） 200x56
-    source_hint: existing
-    status: pending
-  - id: btn_secondary
-    type: ui
-    description: 次操作按钮九宫格背景（返回菜单） 200x56
-    source_hint: existing
-    status: pending
+    status: sourced
+    path: icons/lucide/pause.svg
+    matched_name: pause
+    asset_db_id: AST-001169
+    match_score: 0.85
+  - id: bird_idle
+    type: sprite
+    description: 小鸟飞行精灵 3 帧循环（翅膀上/中/下） 34x24px
+    status: placeholder
+    path: docs/Reqs/32500b/66b492/assets/placeholder/bird_idle.png
+    note: 需多帧动画序列，须由美术制作
+  - id: pipe_down
+    type: sprite
+    description: 下管道精灵 52x320px 含高光/暗部
+    status: placeholder
+    path: docs/Reqs/32500b/66b492/assets/placeholder/pipe_down.png
+  - id: ground_strip
+    type: sprite
+    description: 地面滚动条 336x112px 可无缝平铺
+    status: placeholder
+    path: docs/Reqs/32500b/66b492/assets/placeholder/ground_strip.png
+  - id: sky_bg
+    type: sprite
+    description: 远景天空/城市背景 288x512px 可平铺
+    status: placeholder
+    path: docs/Reqs/32500b/66b492/assets/placeholder/sky_bg.png
   - id: btn_click
     type: audio
     description: 按钮点击音效
-    source_hint: kenney
-    status: pending
+    status: manual_required
+    note: audio 类资产需人工提供或接入对应素材源
   - id: sfx_score
     type: audio
     description: 得分音效（穿过管道）
-    source_hint: kenney
-    status: pending
+    status: manual_required
+    note: audio 类资产需人工提供或接入对应素材源
