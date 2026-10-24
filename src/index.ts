@@ -13,3 +13,6 @@ export type {
   DifficultyConfig,
   DifficultyResult,
 } from "./config";
+
+// 游戏侧 API（状态 / 主循环 / 管道生成 / 管道移动），供根入口统一消费。
+export * from "./game";
