@@ -3,20 +3,20 @@
 ## 评分: 5/10 🚫 需修复
 
 ## 🔴 严重问题（必须修复）
-- {'file': 'src/game/loop.ts', 'line': 44, 'severity': 'critical', 'message': '生成调度的 while 循环没有单帧生成数量上限，且对 dt 未做任何钳制。当页面切后台、设备休眠或调试暂停导致 dt 异常放大（秒级甚至分钟级）时，elapsedSinceSpawn 会一次性累积巨大值，循环会在同一帧生成数十到数百根管道（默认 interval 下限 800ms，dt=60s 即约 75 根），全部堆叠在 PIPE_SPAWN_X 处，引发该帧卡顿→下一帧 dt 更大→生成更多管道的死亡螺旋，严重时可卡死或耗尽内存。', 'suggestion': '对 dt 设置上限（如 Math.min(dt, 0.1)），或限制单帧最多生成 N 根管道，超出部分直接截断计时器（elapsedSinceSpawn = elapsedSinceSpawn % interval），保证单帧管道增量有界。'}
+- src/game/loop.ts step(): 生成调度 while 循环无上界保护。shouldSpawnPipe 判断 elapsedSinceSpawn >= interval 后执行 elapsedSinceSpawn -= interval，若 interval <= 0（calculateDifficulty 作为公开 API 接受任意 config，未校验 spawnInterval.min/max 及 min>0），或 dt 为 NaN/Infinity（requestAnimationFrame 首帧/时钟回退/后台恢复时可能产生），减法无法让计时器下降，导致死循环、页面冻结。默认配置 interval 恒为 [800,1600] 才未触发，属潜在崩溃。
 
 ## 🟡 警告（建议修复）
-- {'file': 'src/game/state.ts', 'line': 66, 'severity': 'warning', 'message': 'restart() 将 score 归零、清空 pipes 与计时器，但未同步重置 state.difficulty，使其在「restart 后、下一帧 step 前」窗口内残留上一局的最高难度快照。虽然注释声称由下一帧派生，但 state 中同时持有 score 与 difficulty 两个事实源（冗余缓存），任何在 ready 阶段读取 state.difficulty 的逻辑（渲染、UI 展示、调试）都会拿到过期值，属双源漂移隐患。', 'suggestion': '在 restart() 内同步执行 state.difficulty = calculateDifficulty(0)，或从 GameState 中移除冗余的 difficulty 缓存字段，改为按需派生。'}
-- {'file': 'src/game/loop.ts', 'line': 51, 'severity': 'warning', 'message': 'pipes 数组只 push 不清理，没有离屏回收逻辑。管道左移出屏幕后依然驻留内存，长时间游玩下数组无限增长，导致 movePipes 每帧遍历成本与内存占用持续上升。', 'suggestion': '在 movePipes 后（或移动逻辑内）过滤/移除 x 已越过屏幕左缘的管道，例如 pipes = pipes.filter(p => p.x + 管道宽度 > 0)。'}
-- {'file': 'src/game/loop.ts', 'line': 45, 'severity': 'warning', 'message': 'while 循环终止完全依赖 difficulty.interval 为正数。calculateDifficulty 允许传入自定义 config 且不校验字段合法性，若外部 config 将 spawnInterval.min 设为 0 或负值，interval 恒为 0 会导致 while 死循环（elapsedSinceSpawn 永远 >= 0）。', 'suggestion': '在 while 条件中额外加 interval > 0 守卫，或对传入 config 的 interval 做下限钳制（如 clamp 到至少 1ms）。'}
-- {'file': 'src/game/loop.ts', 'line': 40, 'severity': 'warning', 'message': 'dt 无任何校验。dt 为负（时钟回拨/计时器异常）时，elapsedSinceSpawn 会倒退、movePipes 中 dx 为负导致管道向右反向移动；dt 为 NaN 时所有派生状态被污染为 NaN。', 'suggestion': '在 step 入口校验 dt：if (!Number.isFinite(dt) || dt <= 0) return；并按需上限钳制。'}
+- src/game/state.ts restart(): 未重置 state.difficulty。注释声称「重开第一帧 = score 0 = 初始难度」的强一致，但 restart 后到下一帧 step 之间，difficulty 仍是上一局最高分时的旧值；任何在此窗口内读取 difficulty（如 ready 屏渲染/管道预览）都会拿到过期的最大难度，与文档不变量相悖。
+- src/config/difficulty.ts calculateDifficulty(): config 参数无结构校验。若运行时传入缺失某旋钮的对象（如只有 pipeSpeed），访问 c.gapHeight.initial 会抛 TypeError 崩溃；config 内出现 NaN 时 clamp(NaN,min,max) 返回 NaN 并沿 speed/gap/interval 传播到 movePipes 与 spawnPipe，污染状态。
+- src/game/loop.ts step(): 在 phase 守卫之前每帧无条件重算 difficulty，ready/gameover 阶段（score 已冻结）仍做无用计算；且 dt 未做非负/有限值清洗，NaN 会永久污染 elapsedSinceSpawn 累积器。
+- src/game/loop.ts: 大帧间隔（后台切回、dt 达数秒）会使 elapsedSinceSpawn 一次性跨越多个 interval，while 一次性批量生成多根管道，造成同帧大量实体突入的尖峰，缺少单帧生成数量上限。
 
 ## 🟢 建议（可选优化）
-- {'file': 'src/game/mover.ts', 'line': 28, 'severity': 'suggestion', 'message': 'movePipes 参数声明为 readonly Pipe[] 却原地修改 pipe.x，readonly 仅约束数组本身不约束元素属性，类型契约与实际行为相矛盾，容易误导调用方误以为不会修改元素。', 'suggestion': '改为 Pipe[]，或采用不可变风格返回新数组（map 生成新对象）。'}
-- {'file': 'src/config/difficulty.ts', 'line': 24, 'severity': 'suggestion', 'message': 'DifficultyResult 接口字段声明 readonly，但 calculateDifficulty 返回的是普通可变对象字面量，运行时仍可被改写（如 state.difficulty.speed = 0），与 DIFFICULTY_CONFIG 的 Object.freeze 不可变约定不一致。', 'suggestion': '对返回值 Object.freeze，或在注释中明确 readonly 仅为编译期约束。'}
-- {'file': 'src/game/state.ts', 'line': 44, 'severity': 'suggestion', 'message': 'createGameState 与 restart 存在重复的初始化逻辑（phase、pipes、elapsedSinceSpawn 等字段的归零/初始化分散两处），后续新增状态字段易漏改其中一处。', 'suggestion': '抽取共享的 reset 逻辑或让 restart 复用 createGameState 的初始化结果。'}
-- {'file': 'src/config/difficulty.ts', 'line': 72, 'severity': 'suggestion', 'message': 'normalizeScore 不取整，小数分数会传递到难度计算，导致 speed/gap/interval 出现非整数微抖动（虽然线性模型本身允许，但与分数「每 1 分」的整数语义不符）。', 'suggestion': '若分数为整数语义，建议 Math.floor 后再参与计算。'}
-- {'file': 'src/game/loop.ts', 'line': 33, 'severity': 'suggestion', 'message': 'step 每帧无条件重算 calculateDifficulty，即使 score 未变化也重新派生三元组，属可接受但略冗余的开销。', 'suggestion': '可选优化：仅在 score 变化时重算并缓存，减少每帧对象分配。'}
+- src/game/state.ts restart(): 显式补一句 state.difficulty = calculateDifficulty(0)，消除依赖「下一帧 step」的隐式自愈窗口，让重开后的状态立刻自洽，而非依赖时序。
+- src/game/loop.ts: 当前循环只有难度刷新、生成、移动，没有任何得分累加/通过管道判定的逻辑；若得分递增不在他处实现，难度曲线将永不爬升。建议明确得分来源并补充通过管道 +1 的钩子。
+- src/config/difficulty.ts: DIFFICULTY_CONFIG 及其旋钮做了 Object.freeze，但 calculateDifficulty 返回的 DifficultyResult 是普通可变字面量，与配置层不可变风格不一致，可考虑冻结返回值或明确注释其可变语义。
+- src/game/spawner.ts: spawnPipe 只存 gap 与 gapCenterY，未派生上下管道边界（gapCenterY ± gap/2），碰撞与渲染需各自重复换算；建议在 Pipe 上直接给出 top/bottom 或提供派生函数。
+- src/game/mover.ts: movePipes 形参声明为 readonly Pipe[] 却对元素 pipe.x 原地改写，readonly 仅约束数组结构不约束元素属性，语义上易被误读为「不修改」，建议在 JSDoc 明确「只读数组引用、原地改元素」或改回 Pipe[]。
 
 ## 审查的代码
 - openspec/changes/c-66b492/tasks.md
