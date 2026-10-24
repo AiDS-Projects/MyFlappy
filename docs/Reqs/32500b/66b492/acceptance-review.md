@@ -4,11 +4,11 @@
 
 | 项目 | 值 |
 |------|------|
-| 评分 | 3/10 (通过线: 6) |
+| 评分 | 2/10 (通过线: 6) |
 | 状态 | acceptance_rejected |
 
 ## 反馈
-难度曲线纯函数层（src/config/difficulty.ts）已实现配置常量表与 computeDifficultyValue/computeDifficulty 计算逻辑，但未接入任何游戏主循环。全仓库 grep 确认：除 difficulty.ts 自身外，无任何模块 import 或引用 difficulty 相关符号，难度模块处于孤立状态。游戏实际运行逻辑（index.html 内联脚本与 src/main.ts）是一个左/右移动 + 跳跃 + 冲刺的平台原型，只有玩家状态（跳跃/冲刺/冷却/无敌帧），没有管道/障碍物生成、没有使用实时难度值驱动的移动、没有分数累计、没有死亡判定、也没有重开重置难度的逻辑。核心验收点（接入主循环、管道实时难度、死亡重开重置）均未实现，仅完成了难度曲线的前置计算模块，本需求（集成 + 重开重置）未达标。
+需求未达标。本需求的三个核心交付点（难度曲线接入主循环、管道生成与移动使用实时难度值、死亡重开后难度重置）均未实现。代码现状：1) 难度曲线纯函数模块 src/config/difficulty.ts 已存在（DIFFICULTY_CONFIG / computeDifficultyValue / computeDifficulty），但全仓库 grep 确认这些导出从未被任何游戏循环代码 import 或调用，属于孤立死代码；2) 实际运行的游戏逻辑（index.html 内联脚本与 src/main.ts）仍是跳跃/二段跳/冲刺/左右移动的平台原型，移动速度等全部为硬编码常量（如 MOVE_SPEED=360），未接入难度曲线；3) 不存在任何管道/障碍物生成（spawner）与移动（mover）逻辑，需求中列出的 src/game/loop.ts、src/game/mover.ts、src/game/spawner.ts 在本工作目录均不存在；4) 不存在死亡判定与重开逻辑，仅有 PlayerState.reset() 重置跳跃/冲刺状态，因此『死亡重开后难度从初始值重新开始』无从实现；5) src/scenes/GameScene.ts 为空壳（仅 super('Game')），且需求列的产出文件 openspec/changes/c-66b492/tasks.md、docs/Reqs/32500b/66b492/dev-notes.md 与既有文件 src/config/constants.ts、difficulty.types.ts、index.ts 在本目录均缺失。
 
 ## 检查清单
   1. 页面能否正常打开
@@ -16,8 +16,8 @@
   3. 界面是否美观合理
 
 ## 问题
-- src/config/difficulty.ts 未被任何模块引用（全仓库 grep 仅该文件自身包含 difficulty 字样），难度曲线未接入游戏主循环
-- 缺少管道/障碍物生成器（spawner）与移动器（mover），不存在使用实时难度值驱动的生成/移动逻辑
-- 游戏主循环（index.html / src/main.ts）无 score 分数累计，computeDifficulty(score) 无任何调用方
-- 无死亡判定与重开重置流程，无法实现“玩家死亡重开后难度从初始值重新开始”
-- 需求列出的产出/既有文件（src/game/loop.ts、spawner.ts、mover.ts、src/config/difficulty.types.ts、src/config/index.ts、openspec/、docs/ 等）在当前工作目录中均不存在，实际项目为 Phaser 平台原型而非管道障碍玩法
+- 难度曲线模块从未被游戏循环引用，computeDifficulty/DIFFICULTY_CONFIG 零调用，未完成『接入主循环』
+- 缺少管道/障碍物生成与移动逻辑（无 spawner/mover/loop 模块），无法使用实时难度值
+- 缺少死亡判定与重开流程，难度重置逻辑完全缺失
+- src/scenes/GameScene.ts 为空壳，未实现任何主循环逻辑
+- 需求列出的产出文件与部分既有文件在本工作目录中不存在
