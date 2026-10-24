@@ -8,7 +8,7 @@
 | 状态 | acceptance_rejected |
 
 ## 反馈
-需求未达标。难度曲线纯函数层（src/config/difficulty.ts 的 computeDifficultyValue/computeDifficulty）确已存在且实现正确，但本次任务的核心——「集成到游戏循环 + 重开重置」完全缺失：1) GameScene.ts 仅为空壳（只有 constructor，无 create/update），没有任何游戏循环消费实时难度值；2) 仓库不存在 src/game/loop.ts、mover.ts、spawner.ts 等管道生成/移动模块，grep 全库确认 difficulty 模块除自身外零引用（是死代码）；3) 无 score 系统、无死亡/重开逻辑、无难度重置回初始值；4) 交付物 openspec/changes/c-66b492/tasks.md 与 docs/Reqs/32500b/66b492/dev-notes.md 均不存在（项目无 openspec/、docs/ 目录，无任何 .md 文件）。实际游戏为静态跳跃/冲刺平台原型（main.ts 内联实现），与需求描述的『管道生成与移动』玩法根本不一致。此结论基于对代码的逐一核查，而非截图无法读取。
+难度曲线模块（src/config/difficulty.ts）已实现 DIFFICULTY_CONFIG 与 computeDifficultyValue/computeDifficulty，但这只是前序任务的产出，本任务的「集成到游戏主循环 + 重开重置」核心未落地。游戏主循环（src/main.ts 的 GameScene.update）全程使用硬编码常量（MOVE_SPEED/JUMP_VELOCITY/DASH_SPEED/DASH_COOLDOWN 等），从未 import 或调用难度模块；游戏内没有分数统计，没有管道/障碍物的生成与移动（需求要求的 src/game/spawner.ts、src/game/mover.ts、src/game/loop.ts 均不存在，连 src/game/ 目录都没有）；也没有死亡与重开逻辑，自然不存在「重开后难度从初始值重新开始」。仅凭 difficulty.ts 一个孤立模块无法支撑本需求的功能验收，判为不通过。
 
 ## 检查清单
   1. 页面能否正常打开
@@ -16,8 +16,8 @@
   3. 界面是否美观合理
 
 ## 问题
-- 难度曲线未接入游戏循环：src/scenes/GameScene.ts 仅空壳 stub，无 update 循环调用 computeDifficulty
-- 缺少管道生成/移动模块：不存在 src/game/loop.ts、mover.ts、spawner.ts，difficulty 模块除自身外零引用
-- 未实现重开重置：无 score 系统、无死亡处理、无难度重置回初始值的逻辑
-- 交付物缺失：openspec/changes/c-66b492/tasks.md 与 docs/Reqs/32500b/66b492/dev-notes.md 均不存在
-- 玩法形态不符：当前为静态平台跳跃/冲刺原型，非『管道生成与移动』玩法
+- 难度曲线未接入主循环：src/config/difficulty.ts 全仓库无任何 import 引用，属孤立模块；src/main.ts 游戏循环使用硬编码常量而非实时难度值。
+- 缺失 src/game/ 目录及 spawner.ts / mover.ts / loop.ts：管道（障碍物）生成与按难度移动的逻辑完全未实现，需求描述的「管道生成与移动使用实时难度值」无从谈起。
+- 无分数机制：游戏无 score 字段与计分逻辑，难度无法随分数递增，computeDifficulty(score) 没有消费方。
+- 无死亡与重开逻辑：缺少死亡判定、重开入口与「难度重置为初始值」的实现。
+- 产出文件缺失：openspec/changes/c-66b492/tasks.md 与 docs/Reqs/32500b/66b492/dev-notes.md 在仓库中均不存在。
