@@ -1,7 +1,69 @@
 # asset_manifest.yaml — 实现随分数递增的难度曲线计算函数
-# 由 UX Agent 自动生成初稿，美术 Agent 会补全和确认
+# 由美术 Agent 完整生成，覆盖 UX Agent 的初稿
+# status: pending=待生产 / sourced=已从资产库获取 / generated=已AI生成
 assets:
-  - id: asset_001
+  - id: icon_pause
     type: icon
-    description: icon: play（开始按钮，24px，outline 风格）\n- icon: pause（暂停按钮，24px，outline 风格）\n- icon: restart（重新开始/再来一局按钮，2
-    status: pending  # 待美术Agent确认来源和规格
+    description: 暂停图标 24px outline 白色
+    source_hint: iconify
+    status: pending
+  - id: icon_play
+    type: icon
+    description: 开始/继续图标 24px outline 白色
+    source_hint: iconify
+    status: pending
+  - id: icon_restart
+    type: icon
+    description: 重新开始图标 24px outline 白色
+    source_hint: iconify
+    status: pending
+  - id: icon_home
+    type: icon
+    description: 返回首页图标 24px outline 白色
+    source_hint: iconify
+    status: pending
+  - id: icon_trophy
+    type: icon
+    description: 最佳得分奖杯图标 16px 金色
+    source_hint: iconify
+    status: pending
+  - id: bg_sky
+    type: illustration
+    description: 天空背景渐变 1280x720 像素风云层
+    source_hint: ai_generate
+    status: pending
+  - id: bg_city_parallax
+    type: illustration
+    description: 远景城市/山丘视差层 1280x720
+    source_hint: ai_generate
+    status: pending
+  - id: sfx_score
+    type: audio
+    description: 得分音效 短促叮咚
+    source_hint: kenney
+    status: pending
+  - id: sfx_tier_up
+    type: audio
+    description: 难度档位提升音效 上扬提示
+    source_hint: kenney
+    status: pending
+  - id: sfx_flap
+    type: audio
+    description: 小鸟扇翅音效
+    source_hint: kenney
+    status: pending
+  - id: sfx_hit
+    type: audio
+    description: 碰撞音效
+    source_hint: kenney
+    status: pending
+  - id: sfx_game_over
+    type: audio
+    description: 游戏结束音效
+    source_hint: kenney
+    status: pending
+  - id: sfx_btn_click
+    type: audio
+    description: 按钮点击音效
+    source_hint: kenney
+    status: pending
