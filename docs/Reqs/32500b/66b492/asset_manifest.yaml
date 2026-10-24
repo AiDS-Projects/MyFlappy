@@ -1,51 +1,59 @@
 # asset_manifest.yaml — 集成难度曲线到游戏循环并实现重开重置
-# 由 UX Agent 自动生成初稿，美术 Agent 会补全和确认
+# 由美术 Agent 完整生成，覆盖 UX Agent 的初稿
+# status: pending=待生产 / sourced=已从资产库获取 / generated=已AI生成
 assets:
-  - id: asset_001
+  - id: bird_idle
+    type: sprite
+    description: 小鸟飞行精灵 3 帧循环（翅膀上/中/下） 34x24px
+    source_hint: existing
+    status: pending
+  - id: pipe_up
+    type: sprite
+    description: 上管道精灵 52x320px 含高光/暗部
+    source_hint: existing
+    status: pending
+  - id: pipe_down
+    type: sprite
+    description: 下管道精灵 52x320px 含高光/暗部
+    source_hint: existing
+    status: pending
+  - id: ground_strip
+    type: sprite
+    description: 地面滚动条 336x112px 可无缝平铺
+    source_hint: existing
+    status: pending
+  - id: sky_bg
+    type: sprite
+    description: 远景天空/城市背景 288x512px 可平铺
+    source_hint: existing
+    status: pending
+  - id: btn_pause
     type: icon
-    description: icon: pause（暂停按钮，24px，outline 风格）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_002
-    type: icon
-    description: icon: restart（再来一局按钮，24px，outline 风格）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_003
-    type: icon
-    description: icon: home（返回菜单按钮，24px，outline 风格）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_004
-    type: icon
-    description: icon: play（开始按钮，32px，fill 风格）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_005
-    type: illustration
-    description: illustration: game-over（游戏结束面板顶部插画，表现小鸟撞管/坠落，400x300）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_006
-    type: illustration
-    description: illustration: empty-state（可选，最高分无记录时的空状态占位，200x150）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_007
-    type: photo
-    description: image: background-sky（游戏主背景，竖屏全屏，按设备宽度适配）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_008
-    type: photo
-    description: image: ground（底部地面滚动条，可平铺，高度约 80-120px）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_009
-    type: photo
-    description: image: bird-sprite（玩家小鸟帧动画精灵图，约 3 帧待机，单帧 64x64）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_010
-    type: photo
-    description: image: pipe-top（上管道，宽约 80px，高度随开口间距动态裁剪）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_011
-    type: photo
-    description: image: pipe-bottom（下管道，宽约 80px，高度随开口间距动态裁剪）
-    status: pending  # 待美术Agent确认来源和规格
-  - id: asset_012
-    type: icon
-    description: 说明：本工单为纯逻辑集成，不新增美术资源；上述资产均为既有资源复用，仅重开按钮如需样式可复用现有 UI 组件。
-    status: pending  # 待美术Agent确认来源和规格
+    description: 暂停图标 24px outline（两条竖线）
+    source_hint: iconify
+    status: pending
+  - id: panel_base
+    type: ui
+    description: 通用弹窗面板背景 320x180 九宫格可拉伸
+    source_hint: existing
+    status: pending
+  - id: btn_primary
+    type: ui
+    description: 主操作按钮九宫格背景（再来一局/开始/继续） 200x56
+    source_hint: existing
+    status: pending
+  - id: btn_secondary
+    type: ui
+    description: 次操作按钮九宫格背景（返回菜单） 200x56
+    source_hint: existing
+    status: pending
+  - id: btn_click
+    type: audio
+    description: 按钮点击音效
+    source_hint: kenney
+    status: pending
+  - id: sfx_score
+    type: audio
+    description: 得分音效（穿过管道）
+    source_hint: kenney
+    status: pending
