@@ -29,6 +29,6 @@ export type DifficultyConfig = {
   readonly pipeSpeed: DifficultyParam;
   /** 开口间距，单位 px */
   readonly gapHeight: DifficultyParam;
-  /** 管道生成间隔，单位 s */
+  /** 管道生成间隔，单位 ms */
   readonly spawnInterval: DifficultyParam;
 };

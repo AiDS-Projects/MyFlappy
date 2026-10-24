@@ -1,149 +1,110 @@
 /**
- * 难度参数配置常量表（单一事实来源）。
+ * 难度曲线计算模块（单一事实来源）。
  *
- * 将随分数变化的难度相关参数集中于此，统一提供：
- *  - 初始值（initial）：score = 0 时的取值；
- *  - 随分数变化速率（rate）：每 1 分的增量，可为负（表示随分数递减）；
- *  - 下限（min）/ 上限（max）：难度曲线计算结果的边界。
+ * 基于分数与三旋钮难度常量表（pipeSpeed / gapHeight / spawnInterval），
+ * 按线性规则计算并做边界钳制，返回当前「速度 / 开口间距 / 生成间隔」。
  *
- * 后续难度曲线模块通过 computeDifficultyValue / computeDifficulty 引用本表，
- * 避免在场景 / 生成逻辑中散落硬编码的难度数值。
+ * 单位契约：
+ *  - speed     px/s
+ *  - gap       px
+ *  - interval  ms
+ *
+ * 游戏逻辑统一 `import { calculateDifficulty } from "@/config"` 引用，
+ * 禁止在管道移动 / 生成逻辑中散落魔法数字。
  */
 
-// ---------------------------------------------------------------------------
-// 类型定义
-// ---------------------------------------------------------------------------
+import { MIN_GAP_HEIGHT } from "./constants";
+import type { DifficultyConfig, DifficultyParam } from "./difficulty.types";
 
-/** 难度参数标识（与 DIFFICULTY_CONFIG 的 key 一一对应） */
-export type DifficultyParamKey =
-  | 'obstacleSpeed'
-  | 'spawnIntervalMs'
-  | 'maxObstacles'
-  | 'hazardDamage'
-  | 'maxFallSpeed';
+export type { DifficultyConfig, DifficultyParam } from "./difficulty.types";
 
-/** 单个难度参数的配置项 */
-export interface DifficultyParamConfig {
-  /** 参数标识 */
-  readonly key: DifficultyParamKey;
-  /** 参数名称（调试 / 日志展示用） */
-  readonly label: string;
-  /** 单位（文档用，如 px/s、ms、个、点） */
-  readonly unit: string;
-  /** 初始值（score = 0 时的取值） */
-  readonly initial: number;
-  /** 随分数变化速率：每 1 分的增量（可为负） */
-  readonly rate: number;
-  /** 下限（计算结果不会低于此值） */
-  readonly min: number;
-  /** 上限（计算结果不会高于此值） */
-  readonly max: number;
+/** 难度曲线计算结果（平铺三元组） */
+export interface DifficultyResult {
+  /** 管道移动速度，单位 px/s */
+  readonly speed: number;
+  /** 管道开口间距，单位 px */
+  readonly gap: number;
+  /** 管道生成间隔，单位 ms */
+  readonly interval: number;
 }
 
-/** 全量难度参数在当前分数下的取值快照 */
-export type DifficultyValues = Record<DifficultyParamKey, number>;
+/** 将单个旋钮配置冻结为不可变对象 */
+function frozenParam(
+  initial: number,
+  ratePerScore: number,
+  min: number,
+  max: number,
+): DifficultyParam {
+  return Object.freeze({ initial, ratePerScore, min, max });
+}
 
-// ---------------------------------------------------------------------------
-// 难度参数配置表
-// ---------------------------------------------------------------------------
-
-export const DIFFICULTY_CONFIG: Readonly<
-  Record<DifficultyParamKey, DifficultyParamConfig>
-> = Object.freeze({
-  /** 危险区 / 障碍物水平移动速度（随分数加快） */
-  obstacleSpeed: {
-    key: 'obstacleSpeed',
-    label: '障碍物速度',
-    unit: 'px/s',
-    initial: 60,
-    rate: 0.5,
-    min: 0,
-    max: 320,
-  },
-
-  /** 障碍物生成间隔（随分数缩短，rate 为负） */
-  spawnIntervalMs: {
-    key: 'spawnIntervalMs',
-    label: '障碍物生成间隔',
-    unit: 'ms',
-    initial: 2200,
-    rate: -4,
-    min: 500,
-    max: 2200,
-  },
-
-  /** 场上同时存在的最大障碍物数量（随分数增多，约每 100 分 +1，消费时向下取整） */
-  maxObstacles: {
-    key: 'maxObstacles',
-    label: '最大障碍物数量',
-    unit: '个',
-    initial: 2,
-    rate: 0.01,
-    min: 1,
-    max: 8,
-  },
-
-  /** 危险区单次接触伤害（随分数上升） */
-  hazardDamage: {
-    key: 'hazardDamage',
-    label: '危险区接触伤害',
-    unit: '点',
-    initial: 1,
-    rate: 0.005,
-    min: 1,
-    max: 5,
-  },
-
-  /** 下落速度上限（随分数提高，rate 为正） */
-  maxFallSpeed: {
-    key: 'maxFallSpeed',
-    label: '下落速度上限',
-    unit: 'px/s',
-    initial: 1400,
-    rate: 3,
-    min: 1400,
-    max: 2800,
-  },
+/**
+ * 内置默认难度常量表（三旋钮 schema）。
+ *
+ * 数值以 PRD 验收基准为权威：
+ *  - pipeSpeed：     200 → 340（每 1 分 +4）
+ *  - gapHeight：     180 → 110（每 1 分 -2，下限由 MIN_GAP_HEIGHT 推导）
+ *  - spawnInterval： 1600 → 800（每 1 分 -20）
+ *
+ * 顶层与各旋钮对象均 `Object.freeze`，保证运行期不可变。
+ */
+export const DIFFICULTY_CONFIG: Readonly<DifficultyConfig> = Object.freeze({
+  pipeSpeed: frozenParam(200, 4, 200, 340),
+  gapHeight: frozenParam(180, -2, MIN_GAP_HEIGHT, 180),
+  spawnInterval: frozenParam(1600, -20, 800, 1600),
 });
-
-/** 所有难度参数 key（按定义顺序，供遍历计算） */
-export const DIFFICULTY_KEYS = Object.keys(
-  DIFFICULTY_CONFIG,
-) as readonly DifficultyParamKey[];
-
-// ---------------------------------------------------------------------------
-// 查询 / 计算辅助
-// ---------------------------------------------------------------------------
 
 /** 将数值截断到 [min, max] 区间 */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/** 按 key 获取单个难度参数配置 */
-export function getDifficultyParam(
-  key: DifficultyParamKey,
-): DifficultyParamConfig {
-  return DIFFICULTY_CONFIG[key];
+/**
+ * 分数归一化：负数 / NaN / undefined / 非有限数统一归一为 0。
+ * 其余数值原样返回（不做取整，保持纯计算语义）。
+ */
+export function normalizeScore(score: unknown): number {
+  if (typeof score !== "number" || !Number.isFinite(score) || score < 0) {
+    return 0;
+  }
+  return score;
 }
 
 /**
- * 计算指定难度参数在某分数下的取值。
- * 线性模型：initial + rate * score，并截断到 [min, max]。
+ * 计算指定分数下的难度曲线取值。
+ *
+ * 线性模型 + 边界钳制：
+ *  - speed    = clamp(initial + ratePerScore * score, min, max)
+ *  - gap      = clamp(initial + ratePerScore * score, min, max)
+ *  - interval = clamp(initial + ratePerScore * score, min, max)
+ *
+ * 对 speed 向上钳制到上限；gap / interval 因 ratePerScore 为负，同一 clamp
+ * 即实现向下钳制到下限。config 缺省时回退内置默认常量表，保证调用不崩溃。
+ *
+ * 旋钮映射：speed ← pipeSpeed、gap ← gapHeight、interval ← spawnInterval。
  */
-export function computeDifficultyValue(
-  key: DifficultyParamKey,
-  score: number,
-): number {
-  const { initial, rate, min, max } = DIFFICULTY_CONFIG[key];
-  return clamp(initial + rate * score, min, max);
-}
+export function calculateDifficulty(
+  score?: number,
+  config?: DifficultyConfig,
+): DifficultyResult {
+  const value = normalizeScore(score);
+  const c = config ?? DIFFICULTY_CONFIG;
 
-/** 一次性计算所有难度参数在某分数下的取值快照 */
-export function computeDifficulty(score: number): DifficultyValues {
-  const values = {} as DifficultyValues;
-  for (const key of DIFFICULTY_KEYS) {
-    values[key] = computeDifficultyValue(key, score);
-  }
-  return values;
+  const speed = clamp(
+    c.pipeSpeed.initial + c.pipeSpeed.ratePerScore * value,
+    c.pipeSpeed.min,
+    c.pipeSpeed.max,
+  );
+  const gap = clamp(
+    c.gapHeight.initial + c.gapHeight.ratePerScore * value,
+    c.gapHeight.min,
+    c.gapHeight.max,
+  );
+  const interval = clamp(
+    c.spawnInterval.initial + c.spawnInterval.ratePerScore * value,
+    c.spawnInterval.min,
+    c.spawnInterval.max,
+  );
+
+  return { speed, gap, interval };
 }
