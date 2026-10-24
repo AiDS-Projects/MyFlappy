@@ -1,0 +1,7 @@
+# asset_manifest.yaml — 实现随分数递增的难度曲线计算函数
+# 由 UX Agent 自动生成初稿，美术 Agent 会补全和确认
+assets:
+  - id: asset_001
+    type: icon
+    description: icon: play（开始按钮，24px，outline 风格）\n- icon: pause（暂停按钮，24px，outline 风格）\n- icon: restart（重新开始/再来一局按钮，2
+    status: pending  # 待美术Agent确认来源和规格
